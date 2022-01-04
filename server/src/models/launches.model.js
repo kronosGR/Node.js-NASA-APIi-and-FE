@@ -9,7 +9,7 @@ const launches = new Map();
 const launch = {
   flightNumber: 100, // flight_number
   mission: 'Kepler Exploration X', //name
-  rocker: 'Explorer',  // rocket.name
+  rocket: 'Explorer',  // rocket.name
   launchDate: new Date('December 27, 2030'), // date_local
   target: 'Kepler-442 b', // not applicable
   customers: [ 'ZTM', 'NASA' ], // payload.customers
@@ -21,7 +21,7 @@ saveLaunch(launch);
 
 const SPACEX_API_URL = 'https://api.spacexdata.com/v4/launches/query';
 
-async function loadLaunchData() {
+async function populateLaunches() {
   console.log('Downloading launches data from SpaceX...');
   const response = await axios.post(SPACEX_API_URL, {
     query: {},
@@ -47,9 +47,9 @@ async function loadLaunchData() {
   const launchDocs = response.data.docs;
   for (const launchDoc of launchDocs) {
     const payloads = launchDoc['payloads'];
-    const customers = payloads.flatMap((payload)=> {
+    const customers = payloads.flatMap((payload) => {
       return payload['customers'];
-    })
+    });
 
     const launch = {
       flightNumber: launchDoc['flight_number'],
@@ -61,15 +61,34 @@ async function loadLaunchData() {
       customers: customers
     };
 
-    console.log(`${launch.flightNumber} ${launch.mission}`)
+    console.log(`${launch.flightNumber} ${launch.mission}`);
   }
 
 }
 
+async function loadLaunchData() {
+  const firstLaunch = await findLaunch({
+                                         flightNumber: 1,
+                                         rocket: 'Falcon 1',
+                                         mission: 'FalconSat'
+                                       });
+
+  if (firstLaunch) {
+    console.log('Data already loaded');
+  } else {
+    populateLaunches();
+  }
+
+}
+
+async function findLaunch(filter) {
+  return await launchesDatabase.findOne(filter);
+}
+
 async function existsLaunchWithId(launchId) {
-  return await launchesDatabase.findOne({
-                                          flightNumber: launchId
-                                        });
+  return await findLaunch({
+                            flightNumber: launchId
+                          });
 }
 
 async function getLatestFlightNumber() {
