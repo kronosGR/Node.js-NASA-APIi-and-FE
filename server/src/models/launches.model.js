@@ -12,7 +12,7 @@ const launch = {
   rocket: 'Explorer',  // rocket.name
   launchDate: new Date('December 27, 2030'), // date_local
   target: 'Kepler-442 b', // not applicable
-  customers: [ 'ZTM', 'NASA' ], // payload.customers
+  customers: ['ZTM', 'NASA'], // payload.customers
   upcoming: true,  // upcoming
   success: true, // success
 };
@@ -31,18 +31,23 @@ async function populateLaunches() {
         {
           path: 'rocket',
           select: {
-            name: 1
-          }
+            name: 1,
+          },
         },
         {
           path: 'payloads',
           select: {
-            'customers': 1
-          }
-        }
-      ]
-    }
+            'customers': 1,
+          },
+        },
+      ],
+    },
   });
+
+  if (response.status !== 200) {
+    console.log('Problem downloading launch data');
+    throw new Error('Launch data fetching failed');
+  }
 
   const launchDocs = response.data.docs;
   for (const launchDoc of launchDocs) {
@@ -58,25 +63,27 @@ async function populateLaunches() {
       launchDate: launchDoc['date_local'],
       upcoming: launchDoc['upcoming'],
       success: launchDoc['success'],
-      customers: customers
+      customers: customers,
     };
 
     console.log(`${launch.flightNumber} ${launch.mission}`);
+    await saveLaunch(launch);
   }
+
 
 }
 
 async function loadLaunchData() {
   const firstLaunch = await findLaunch({
-                                         flightNumber: 1,
-                                         rocket: 'Falcon 1',
-                                         mission: 'FalconSat'
-                                       });
+    flightNumber: 1,
+    rocket: 'Falcon 1',
+    mission: 'FalconSat',
+  });
 
   if (firstLaunch) {
     console.log('Data already loaded');
   } else {
-    populateLaunches();
+    await populateLaunches();
   }
 
 }
@@ -87,8 +94,8 @@ async function findLaunch(filter) {
 
 async function existsLaunchWithId(launchId) {
   return await findLaunch({
-                            flightNumber: launchId
-                          });
+    flightNumber: launchId,
+  });
 }
 
 async function getLatestFlightNumber() {
@@ -106,33 +113,33 @@ async function getLatestFlightNumber() {
 async function getAllLaunches() {
   return await launchesDatabase.find({}, {
     '_id': 0,
-    '__v': 0
+    '__v': 0,
   });
 }
 
 async function saveLaunch(launch) {
+  await launchesDatabase.findOneAndUpdate({
+    flightNumber: launch.flightNumber,
+  }, launch, {
+    upsert: true,
+  });
+}
+
+async function scheduleNewLaunch(launch) {
   const planet = await planets.findOne({
-                                         keplerName: launch.target
-                                       });
+    keplerName: launch.target,
+  });
 
   if (!planet) {
     throw new Error('No matching planet found!');
   }
 
-  await launchesDatabase.findOneAndUpdate({
-                                            flightNumber: launch.flightNumber
-                                          }, launch, {
-                                            upsert: true
-                                          });
-}
-
-async function scheduleNewLaunch(launch) {
   const newFlightNumber = await getLatestFlightNumber() + 1;
   const newLaunch = Object.assign(launch, {
     success: true,
     upcoming: true,
-    customers: [ 'ZTM', 'NASA' ],
-    flightNumber: newFlightNumber
+    customers: ['ZTM', 'NASA'],
+    flightNumber: newFlightNumber,
   });
 
   await saveLaunch(newLaunch);
@@ -141,11 +148,11 @@ async function scheduleNewLaunch(launch) {
 
 async function abortLaunchById(launchId) {
   const aborted = await launchesDatabase.updateOne({
-                                                     flightNumber: launchId
-                                                   }, {
-                                                     upcoming: false,
-                                                     success: false
-                                                   });
+    flightNumber: launchId,
+  }, {
+    upcoming: false,
+    success: false,
+  });
 
   return aborted.modifiedCount === 1;
 }
@@ -155,5 +162,5 @@ module.exports = {
   scheduleNewLaunch,
   existsLaunchWithId,
   abortLaunchById,
-  loadLaunchData
+  loadLaunchData,
 };
