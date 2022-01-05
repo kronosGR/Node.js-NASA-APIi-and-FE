@@ -2,13 +2,20 @@ const {
   getAllLaunches,
   existsLaunchWithId,
   abortLaunchById,
-  scheduleNewLaunch
+  scheduleNewLaunch,
 } = require(
   '../../models/launches.model');
 
+const { getPagination } = require('../../services/query');
+
 async function httpGetAllLaunches(req, res) {
+  const {
+    skip,
+    limit,
+  } = getPagination(req.query);
+  const launches = await getAllLaunches(skip, limit);
   return res.status(200)
-    .json(await getAllLaunches());
+    .json(launches);
 }
 
 async function httpAddNewLaunch(req, res) {
@@ -25,7 +32,7 @@ async function httpAddNewLaunch(req, res) {
   if (isNaN(launch.launchDate)) {
     return res.status(400)
       .json({
-        error: 'Invalid launch date'
+        error: 'Invalid launch date',
       });
   }
   await scheduleNewLaunch(launch);
@@ -48,17 +55,17 @@ async function httpAbortLaunch(req, res) {
   if (!aborted) {
     return res.status(400)
       .json({
-        error: 'Launch not aborted'
+        error: 'Launch not aborted',
       });
   }
   return res.status(200)
     .json({
-      ok: true
+      ok: true,
     });
 }
 
 module.exports = {
   httpGetAllLaunches,
   httpAddNewLaunch,
-  httpAbortLaunch
+  httpAbortLaunch,
 };
