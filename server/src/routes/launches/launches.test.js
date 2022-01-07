@@ -1,15 +1,20 @@
 const request = require('supertest');
 const app = require('../../app');
-const { mongoConnect, mongoDisconnect } = require('../../services/mongo');
+const {
+  mongoConnect,
+  mongoDisconnect,
+} = require('../../services/mongo');
+const { loadPlanetsData } = require('../../models/planets.model');
 
 describe('Launches API', () => {
   beforeAll(async () => {
     await mongoConnect();
+    await loadPlanetsData();
   });
 
   afterAll(async () => {
-    await mongoDisconnect()
-  })
+    await mongoDisconnect();
+  });
 
   describe('Test GET /launches', () => {
     test('It should respond with 200 success', async () => {
@@ -25,7 +30,7 @@ describe('Launches API', () => {
       mission: 'USS',
       rocket: 'Rocket',
       target: 'Kepler-62 f',
-      launchDate: 'January 12, 2100'
+      launchDate: 'January 12, 2100',
     };
 
     const launchDataWithoutDate = {
@@ -38,7 +43,7 @@ describe('Launches API', () => {
       mission: 'USS',
       rocket: 'Rocket',
       target: 'Kepler-62 f',
-      launchDate: 'Janzoot'
+      launchDate: 'Janzoot',
     };
 
     test('It should respond with 201 success', async () => {
@@ -78,7 +83,7 @@ describe('Launches API', () => {
 
       expect(response.body)
         .toStrictEqual({
-          error: 'Invalid launch date'
+          error: 'Invalid launch date',
         });
     });
   });
